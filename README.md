@@ -9,12 +9,12 @@ pip install fastdeploy-gpu-python -f https://link.zhihu.com/?target=https%3A//ww
 ```
 
 1. Download the 
-2. 准备自己的数据集:
+2. (Prepare your own data set);准备自己的数据集:
 
-       数据集格式需求：
+       (Dataset format requirements);数据集格式需求：
 
 ```
-dataset #(数据集名字：例如fire)
+dataset #((Dataset name: e.g. fire)); (数据集名字：例如fire)
 ├── images
        ├── train
               ├── xx.jpg
@@ -27,7 +27,7 @@ dataset #(数据集名字：例如fire)
               ├── xx.txt
 ```
 
-数据集划分：
+(Data set partitioning); 数据集划分：
 
 ```python
 # coding:utf-8
@@ -37,9 +37,9 @@ import random
 import argparse
 
 parser = argparse.ArgumentParser()
-#xml文件的地址，根据自己的数据进行修改 xml一般存放在Annotations下
+#(The address of the xml file, modify it according to your own data. xml is generally stored under Annotations.); xml文件的地址，根据自己的数据进行修改 xml一般存放在Annotations下
 parser.add_argument('--xml_path', default='Annotations', type=str, help='input xml label path')
-#数据集的划分，地址选择自己数据下的ImageSets/Main
+# (To divide the data set, select ImageSets/Main under your own data as the address.); 数据集的划分，地址选择自己数据下的ImageSets/Main
 parser.add_argument('--txt_path', default='ImageSets/Main', type=str, help='output txt label path')
 opt = parser.parse_args()
 
@@ -80,7 +80,7 @@ file_val.close()
 file_test.close()
 ```
 
-.xml转.txt
+.xml to .txt
 
 ```python
 # -*- coding: utf-8 -*-
@@ -89,7 +89,7 @@ import os
 from os import getcwd
 
 sets = ['train', 'val', 'test']
-classes = ["a", "b"]   # 改成自己的类别
+classes = ["a", "b"]   # (Change to your own category); 改成自己的类别
 abs_path = os.getcwd()
 print(abs_path)
 
@@ -125,7 +125,7 @@ def convert_annotation(image_id):
         b = (float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(xmlbox.find('ymin').text),
              float(xmlbox.find('ymax').text))
         b1, b2, b3, b4 = b
-        # 标注越界修正
+        # (Mark out of bounds correction); 标注越界修正
         if b2 > w:
             b2 = w
         if b4 > h:
@@ -146,11 +146,13 @@ for image_set in sets:
     list_file.close()
 ```
 
+### **Add data configuration file**
 ### **添加数据配置文件**
 
+Create a new myvoc.yaml in the yolov5/data folder
 在yolov5/data文件夹下新建myvoc.yaml
 
-内容如下所示：
+The content is as follows：
 
 ```python
 # Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
@@ -164,18 +166,23 @@ nc: 1  # number of classes
 names: ['fire']  # class names
 ```
 
+(Attention please, the train and val parameters here are the paths of the images themselves)
 (注意，这里的train,val参数是图片本身的路径）
 
-Tips: ./model/yolov5s.yaml, 中改一下类别就可以了，改成你自己的类别数量。
+Tips: ./model/yolov5s.yaml, (Just change the category and change it to your own number of categories.); 中改一下类别就可以了，改成你自己的类别数量。
 
 ![e3205378ea0144a5a8d8f8b735612d02.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/13ddcf97-d85b-488c-b6ea-cd24827b69e0/e3205378ea0144a5a8d8f8b735612d02.png)
 
+### Edit the model’s configuration file:
 ### 编辑模型的配置文件：
 
+***Clustering to obtain a priori boxes (optional) (clustering to regenerate anchors takes a long time) *The latest version of yolov5, it will automatically calculate anchors using kmeans**
 ***聚类得出先验框（可选）（聚类重新生成anchors运行时间较长）*最新版的yolov5，它会自动kmeans算出anchors**
 
+The manual calculation process is as follows:
 手动计算过程如下：
 
+Create a new kmeans.py under the dataset folder
 在数据集文件夹下新建kmeans.py
 
 ```python
@@ -191,7 +198,7 @@ def iou(box, clusters):
     x = np.minimum(clusters[:, 0], box[0])
     y = np.minimum(clusters[:, 1], box[1])
     if np.count_nonzero(x == 0) > 0 or np.count_nonzero(y == 0) > 0:
-        raise ValueError("Box has no area")                 # 如果报这个错，可以把这行改成pass即可
+        raise ValueError("Box has no area")                 # (If this error is reported, you can change this line to pass.); 如果报这个错，可以把这行改成pass即可
 
     intersection = x * y
     box_area = box[0] * box[1]
@@ -261,10 +268,12 @@ if __name__ == '__main__':
     print(translate_boxes(a))
 ```
 
+Clustering generates the file clauculate_anchors.py of new anchors. The code content is as follows:
 聚类生成新anchors的文件clauculate_anchors.py，代码内容如下：
 
 ```python
 # -*- coding: utf-8 -*-
+# Find the a priori frame based on the label file
 # 根据标签文件求先验框
 
 import os
@@ -272,8 +281,8 @@ import numpy as np
 import xml.etree.cElementTree as et
 from kmeans import kmeans, avg_iou
 
-FILE_ROOT = "/home/trainingai/zyang/yolov5/paper_data/"     # 根路径
-ANNOTATION_ROOT = "Annotations"  # 数据集标签文件夹路径
+FILE_ROOT = "/home/trainingai/zyang/yolov5/paper_data/"     # (root path); 根路径
+ANNOTATION_ROOT = "Annotations"  # (Dataset label folder path); 数据集标签文件夹路径
 ANNOTATION_PATH = FILE_ROOT + ANNOTATION_ROOT
 
 ANCHORS_TXT_PATH = "/home/trainingai/zyang/yolov5/data/anchors.txt"
@@ -315,7 +324,7 @@ if __name__ == '__main__':
     best_anchors = []
     best_ratios = []
 
-    for i in range(10):      ##### 可以修改，不要太大，否则时间很长
+    for i in range(10):      ##### (You can modify it, don’t make it too big, otherwise it will take a long time); 可以修改，不要太大，否则时间很长
         anchors_tmp = []
         clusters = kmeans(train_boxes, k=CLUSTERS)
         idx = clusters[:, 0].argsort()
@@ -348,9 +357,31 @@ if __name__ == '__main__':
     anchors_txt.close()
 ```
 
+After running clauculate_anchors.py, a file anchors.txt will be generated, which contains the suggested a priori frame anchors.
 运行clauculate_anchors.py跑完会生成一个文件 anchors.txt，里面有得出的建议先验框anchors. 
 
+### Modify the path and parameters in train.py
 ### 修改train.py中的路径及参数
+
+The parameters are explained as follows:
+Epochs: refers to how many times the entire data set will be iterated during the training process. If the graphics card is not good, you can adjust it smaller.
+Batch-size: How many pictures are viewed at one time before the weights are updated. Gradient descent mini-batch. If the graphics card is not good, you can adjust it smaller.
+cfg: Configuration file that stores the model structure
+data: files that store training and test data
+img-size: Enter the image width and height. If the graphics card is not good, you can adjust it smaller.
+rect: perform rectangular training
+resume: Resume the recently saved model to start training
+nosave: only save the final checkpoint
+notest: only test the last epoch
+evolve: evolve hyperparameters
+bucket: gsutil bucket
+cache-images: cache images to speed up training
+weights: weight file path
+name: Rename results.txt to results_name.txt
+device: cuda device, i.e. 0 or 0,1,2,3 or cpu
+adam: Use adam optimization
+multi-scale: multi-scale training, img-size +/- 50%
+single-cls: single-category training set
 
 参数解释如下：
 epochs：指的就是训练过程中整个数据集将被迭代多少次,显卡不行你就调小点。
